@@ -47,7 +47,28 @@ async function renderMarkdown() {
         // Verify if Marked library is available
         const markedInstance = window.marked?.marked || window.marked;
         if (typeof markedInstance === 'function' || (markedInstance && typeof markedInstance.parse === 'function')) {
-            container.innerHTML = typeof markedInstance === 'function' ? markedInstance(mdText) : markedInstance.parse(mdText);
+            // Configure Marked with custom renderer to handle relative image paths
+            const renderer = new marked.Renderer();
+            const baseDir = mdFile.substring(0, mdFile.lastIndexOf('/') + 1);
+
+            renderer.image = function(image) {
+                let href = image.href;
+                let title = image.title;
+                let text = image.text;
+                
+                let finalHref = href;
+                // If image path is relative (starts with . or ..)
+                if (href.startsWith('.') || href.startsWith('..')) {
+                    // Resolve path relative to viewer.html
+                    // Since viewer.html is in docs/ and mdFile is in docs/reprint/
+                    // we join baseDir (e.g., "./reprint/") with href (e.g., "../assets/")
+                    finalHref = baseDir + href;
+                }
+                return `<img src="${finalHref}" alt="${text}" ${title ? `title="${title}"` : ''} />`;
+            };
+
+            const parseOptions = { renderer: renderer };
+            container.innerHTML = typeof markedInstance === 'function' ? markedInstance(mdText, parseOptions) : markedInstance.parse(mdText, parseOptions);
         } else {
             throw new Error('未检测到 Marked.js 渲染引擎。检查 CDN 链接是否被拦截？');
         }

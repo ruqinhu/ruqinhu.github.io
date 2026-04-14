@@ -122,7 +122,7 @@ async def fetch_and_parse(url, output_path=None):
         base_dir = os.getcwd()
         img_save_dir = os.path.join(base_dir, "docs", "assets", "images", "reprint", rel_name)
         # For markdown replacement, use relative path or absolute from web root
-        web_img_prefix = f"./assets/images/reprint/{rel_name}/"
+        web_img_prefix = f"../assets/images/reprint/{rel_name}/"
 
     for img in content_node.find_all("img"):
         original_src = None
@@ -174,13 +174,12 @@ async def fetch_and_parse(url, output_path=None):
     markdown_body = re.sub(r'\n{3,}', '\n\n', markdown_body)
     
     # 6. Final assembly
-    header = f"# 转载：{title}\n\n"
-    header += f"作者：{author}  \n原文链接：{url}\n\n---\n\n"
-    
-    # Use current date
-    from datetime import datetime
-    today = datetime.now().strftime("%Y年%m月%d日")
-    final_output = header + markdown_body.strip() + f"\n\n---\n*转载于 {today}*"
+    # Stop adding redundant header if content already has an H1
+    final_header = f"作者：{author}  \n原文链接：{url}\n\n---\n\n"
+    if not re.search(r'^#\s+', markdown_body):
+        final_header = f"# {title}\n\n" + final_header
+
+    final_output = final_header + markdown_body.strip()
 
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True) if os.path.dirname(output_path) else None
